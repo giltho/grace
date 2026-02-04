@@ -472,14 +472,20 @@ module Of_diagnostic = struct
               else (* Label starts on a later line *)
                 true)
           in
-          (* Add to [rev_lines] *)
-          ( labels
-          , line_of_labels
-              ~sd
-              ~line
-              line_labels.inline_labels
-              line_labels.multi_line_labels
-            :: rev_lines ))
+          (* Add to [rev_lines] only if the line has actual labels *)
+          let rev_lines =
+            if List.is_empty line_labels.inline_labels
+               && List.is_empty line_labels.multi_line_labels
+            then rev_lines
+            else
+              line_of_labels
+                ~sd
+                ~line
+                line_labels.inline_labels
+                line_labels.multi_line_labels
+              :: rev_lines
+          in
+          (labels, rev_lines))
     in
     List.rev rev_lines
   ;;

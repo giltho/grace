@@ -224,7 +224,7 @@ let pp_line_break ~config ~severity ~ctxt ppf () =
     ppf
     "@[<h>%*s %a %a@]"
     ctxt.line_num_width
-    ""
+    "..."
     (Chars.pp_source_border_left_break ~config)
     ()
     (pp_multi_lines ~config ~severity)
