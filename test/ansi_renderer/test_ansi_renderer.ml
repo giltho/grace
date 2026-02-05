@@ -655,3 +655,61 @@ let%expect_test "multi-line empty messages" =
     rigid_variable_escape.ml:2:3: error: generic type variable `a` escapes its scope
     |}]
 ;;
+
+let%expect_test "multi-label on large file" =
+  let source = source "large_files.rs" Large_fixture.large_file in
+  let diagnostics (a1, b1) (a2, b2) =
+    Diagnostic.
+      [ createf
+          ~labels:
+            [ Label.primaryf ~range:(range ~source a1 b1) "Error is happening here"
+            ; Label.primaryf ~range:(range ~source a2 b2) "Bananad from here"
+            ]
+          Error
+          "Some dramatic error"
+      ]
+    (* 2951 3015) "Error is happening here"
+            ; Label.primaryf ~range:(range ~source 16569 16595 *)
+  in
+  pr_diagnostics (diagnostics (2951, 3015) (16569, 16595));
+  [%expect
+    {|
+    error: Some dramatic error
+        ┌─ large_files.rs:521:21
+    148 │           ~compare:(Comparable.pair Diagnostic.Priority.compare Byte_index.compare)
+        │                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Error is happening here
+    ... ·
+    521 │          let locus = locus_of_labels ~sd labels in
+        │                      ^^^^^^^^^^^^^^^^^^^^^^^^^^ Bananad from here
+
+    large_files.rs:521:21: error: Some dramatic error
+    |}];
+  (* Also works with 1- and 2-digits line numbers *)
+  pr_diagnostics (diagnostics (1474, 1493) (84, 107));
+  [%expect
+    {|
+    error: Some dramatic error
+        ┌─ large_files.rs:73:18
+      5 │  let margin_length_of_string line_content =
+        │      ^^^^^^^^^^^^^^^^^^^^^^^ Bananad from here
+    ... ·
+     73 │      let length = Utf8.length content in
+        │                   ^^^^^^^^^^^^^^^^^^^ Error is happening here
+
+    large_files.rs:73:18: error: Some dramatic error
+    |}];
+  (* Check that there is no ellipsis if there is a gap of size 1 *)
+  pr_diagnostics (diagnostics (84, 107) (195, 205));
+  [%expect
+    {|
+    error: Some dramatic error
+        ┌─ large_files.rs:7:6
+      5 │  let margin_length_of_string line_content =
+        │      ^^^^^^^^^^^^^^^^^^^^^^^ Error is happening here
+      6 │    (* This is valid for UTF8 as all the whitespace characters we're
+      7 │       interested in wrt a 'margin' have a width of 1. *)
+        │       ^^^^^^^^^^ Bananad from here
+
+    large_files.rs:7:6: error: Some dramatic error
+    |}]
+;;
