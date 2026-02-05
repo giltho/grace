@@ -569,6 +569,36 @@ let%expect_test "unicode spans" =
     Raised: (Invalid_argument "invalid UTF-8") |}]
 ;;
 
+let%expect_test "multiline label starting after newline" =
+  (* Bug #49: https://github.com/johnyob/grace/issues/49 *)
+  let content = "foo\n\nbar {\n}\n" in
+  let source : Source.t = `String { name = None; content } in
+  let diagnostics =
+    Diagnostic.
+      [ createf
+          ~labels:
+            [ Label.primaryf ~range:(range ~source 0 3) "e1"
+            ; Label.secondaryf ~range:(range ~source 5 13) "e2"
+            ]
+          Error
+          "err"
+      ]
+  in
+  pr_bad_diagnostics diagnostics;
+  [%expect
+    {|
+    error: err
+        ┌─ unknown:1:1
+      1 │    foo
+        │    ^^^ e1
+      2 │
+      3 │ ╭  bar {
+      4 │ │  }
+        │ ╰───' e2
+      5 │
+    |}]
+;;
+
 let%expect_test "multi-line empty messages" =
   let source =
     source
